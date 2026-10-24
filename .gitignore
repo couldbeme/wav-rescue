@@ -1,0 +1,4 @@
+*.img
+*.wav
+__pycache__/
+.pytest_cache/
