@@ -50,6 +50,15 @@ A recording shows as 0 bytes when the recorder lost power or the drive was remov
 - `check_splices.py` flags candidates; it cannot prove a file is clean. Listen to every flagged time.
 - Needs Python 3 and numpy (`check_splices.py`, `mix_two.py`); `carve_wav.py` uses only the standard library.
 
+## Related tools and prior art
+
+Nothing here is a new technique. Carving files from raw disks is standard forensics practice, and repairing the size fields of an interrupted WAV is a long-known fix:
+- [PhotoRec](https://www.cgsecurity.org/wiki/PhotoRec) (TestDisk project) carves many file types, WAV included, from disks and images.
+- RepairWave, part of the WAVE Utilities suite, inserts missing data-chunk size information into ill-formed WAV files.
+- The manual route: open the file in a hex editor and set the RIFF size to file length − 8 and the data size to the audio bytes present ([Synalysis write-up](https://www.synalysis.net/developer-weblog/rescue-of-a-wav-file.html)), or import the bytes into Audacity as raw PCM with the recorder's settings.
+
+What this kit adds is convenience for one common case: a recorder's 0-byte file on a mostly empty card, recovered in two commands on macOS, plus a burst check that uses a second simultaneous recording to tell recording artefacts from recovery damage.
+
 ## Tests
 
 ```
