@@ -42,6 +42,30 @@ A recording shows as 0 bytes when the recorder lost power or the drive was remov
    ```
 7. Back up the recovered files before you use the drive again.
 
+## How to use it (Windows)
+
+Not yet tested on real Windows hardware; the end-of-volume behaviour of Windows raw devices is covered by a test. Reports welcome.
+
+1. **Stop writing to the drive.** Don't open files on it, and close any DJ or recording software that might use it. Note its drive letter in File Explorer, e.g. `E:`.
+2. Install Python 3 from python.org (tick "Add python.exe to PATH"). For `check_splices.py` and `mix_two.py` also run `pip install numpy`.
+3. Open **PowerShell as Administrator** (Start → type PowerShell → right-click → Run as administrator). Raw reads need admin rights.
+4. **Scan**, using the drive letter in the raw form `\\.\E:`:
+   ```
+   mkdir C:\recovery
+   python carve_wav.py scan \\.\E: C:\recovery
+   ```
+5. **Extract** the candidate by its offset:
+   ```
+   python carve_wav.py extract \\.\E: <offset> C:\recovery\set.wav
+   ```
+6. Check and mix as on macOS (steps 5 and 6 above), with Windows paths.
+
+If Windows says the drive needs formatting or repair, choose **Cancel**. Formatting or running a disk check can overwrite the lost audio.
+
+## How to use it (Linux)
+
+Same as macOS without the permission step: find the partition with `lsblk` (e.g. `/dev/sdb1`), unmount it, then `sudo python3 carve_wav.py scan /dev/sdb1 ~/recovery`.
+
 `scan` and `extract` also work on a disk image (`dd if=/dev/rdiskN of=disk.img`) if you have room for one, which is the safer route on a failing drive.
 
 ## Limits

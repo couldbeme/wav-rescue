@@ -5,14 +5,22 @@ extract: carve_wav.py extract <source> <offset> <out.wav> [--max-gb N]
          copies from the header until 64 MiB of silence-or-zeros or the declared size, then fixes the RIFF/data sizes in the copy."""
 import os, struct, sys, json, time
 CH = 8 << 20
+_open = open   # replaced in tests
+
+def _read(f, n):
+    """Raw devices on Windows raise OSError at the end of the volume instead of returning b''."""
+    try:
+        return f.read(n)
+    except OSError:
+        return b""
 
 def scan(src, out):
     os.makedirs(out, exist_ok=True)
     hits, pos, tail = [], 0, b""
     t0 = time.time()
-    with open(src, "rb", buffering=0) as f:
+    with _open(src, "rb", buffering=0) as f:
         while True:
-            buf = f.read(CH)
+            buf = _read(f, CH)
             if not buf: break
             data = tail + buf; base = pos - len(tail)
             i = data.find(b"RIFF")
@@ -36,13 +44,13 @@ def scan(src, out):
 def extract(src, off, dst, max_gb=8.0):
     blk = 512; start = off - off % blk; skip = off - start
     limit = int(max_gb * 2**30); zero_run = 0; written = 0
-    with open(src, "rb", buffering=0) as f, open(dst, "wb") as o:
-        f.seek(start); hdr = f.read(blk); f.seek(start)
+    with _open(src, "rb", buffering=0) as f, open(dst, "wb") as o:
+        f.seek(start); hdr = _read(f, blk); f.seek(start)
         declared = struct.unpack("<I", hdr[skip+4:skip+8])[0] if len(hdr) >= skip + 8 else 0
         if 0 < declared < 0xFFFFFFF0: limit = min(limit, declared + 8)   # finalised file: copy exactly its declared size
         first = True
         while written < limit:
-            buf = f.read(CH)
+            buf = _read(f, CH)
             if not buf: break
             if first: buf = buf[skip:]; first = False
             buf = buf[:limit - written]

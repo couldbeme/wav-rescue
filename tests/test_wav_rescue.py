@@ -53,3 +53,19 @@ def test_shared_burst_is_labelled_in_recording(tmp_path):
     _w24(tmp_path / "a.wav", a); _w24(tmp_path / "b.wav", b)
     out = run("check_splices.py", str(tmp_path / "a.wav"), str(tmp_path / "b.wav"))
     assert "in both files" in out and "only here" in out
+
+def test_device_that_errors_at_end_like_windows(tmp_path, monkeypatch):
+    sys.path.insert(0, HERE); import carve_wav
+    pcm = os.urandom(1_000_000); data = os.urandom(4096) + wav_bytes(pcm, finalised=False) + b"\0" * (70 << 20)
+    class Dev:
+        def __init__(self): self.pos = 0
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def seek(self, p): self.pos = p
+        def read(self, n):
+            if self.pos >= len(data): raise OSError(87, "The parameter is incorrect")
+            b = data[self.pos:self.pos + n]; self.pos += len(b); return b
+    monkeypatch.setattr(carve_wav, "_open", lambda *a, **k: Dev())
+    carve_wav.scan("dev", str(tmp_path))
+    carve_wav.extract("dev", 4096, str(tmp_path / "w.wav"))
+    assert wave.open(str(tmp_path / "w.wav")).getnframes() * 4 == len(pcm)
